@@ -1,12 +1,9 @@
-import { $, hash } from 'bun';
+import { $ } from 'bun';
 import { Elysia, t } from 'elysia';
 import { Webhooks } from '@octokit/webhooks';
 
 const secret = process.env.WEBHOOK_SECRET!;
-const webhooks = new Webhooks({
-  secret,
-});
-// 16d48c6e78ed32451e31e8fdcf6c5b47191549d94d9d0f0812e782e79c20a6fb
+const webhooks = new Webhooks({ secret });
 
 const port = process.env.PORT ?? 3000;
 
@@ -24,7 +21,6 @@ const app = new Elysia()
       }
 
       set.status = 202;
-      // new Response('Accepted');
 
       return 'Accepted';
     },
@@ -39,20 +35,17 @@ const app = new Elysia()
         return 'happens';
       },
       async afterHandle({ body, set }) {
-        // console.log('STATUS', set.status);
         if (set.status !== 202) return;
         const parsed = JSON.parse(body);
         const repo = parsed.repository.name;
-        // console.log({ repo });
         try {
           $.cwd('/var/www');
-          // console.log(await $`pwd`.text());
           const foundDir = (await $`ls | grep -x "${repo}"`.text()).replaceAll('\n', '');
           if (foundDir !== repo) return;
 
           $.cwd(`/var/www/${repo}`);
           await $`git pull`;
-        } catch (err) {
+        } catch (err: any) {
           console.log(`Failed with code ${err.exitCode}`);
           console.log(err.stdout.toString());
           console.log(err.stderr.toString());
