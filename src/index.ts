@@ -61,6 +61,7 @@ const app = new Elysia()
           if (!/^[a-zA-Z0-9_-]+$/.test(repo)) return;
 
           const repoDir = path.join(baseDir, repo);
+          console.log('BUN REPO EXISTS: ');
           const stat = await fs.stat(repoDir).catch(() => null);
           if (!stat || !stat.isDirectory()) {
             console.warn(`Repository directory does not exist or is not a directory: ${repoDir}`);
@@ -69,6 +70,9 @@ const app = new Elysia()
 
           $.cwd(repoDir);
           await $`git pull`;
+          if (await Bun.file(path.join(repoDir, 'package.json')).exists()) {
+            await $`npm run build`;
+          }
         } catch (err: any) {
           console.log(`Failed with code ${err.exitCode}`);
           console.log(err.stdout.toString());
