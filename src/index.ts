@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { Elysia, t } from 'elysia';
 import { Webhooks } from '@octokit/webhooks';
+import { rateLimit } from 'elysia-rate-limit';
 
 const secret = process.env.WEBHOOK_SECRET!;
 
@@ -23,6 +24,7 @@ const baseDir = '/var/www';
 const port = process.env.PORT ?? 3000;
 
 const app = new Elysia()
+  .use(rateLimit({ max: 5 }))
   .get('/', { msg: 'Running' })
   .post(
     '/webhook',
@@ -61,7 +63,6 @@ const app = new Elysia()
           if (!/^[a-zA-Z0-9_-]+$/.test(repo)) return;
 
           const repoDir = path.join(baseDir, repo);
-          console.log('BUN REPO EXISTS: ');
           const stat = await fs.stat(repoDir).catch(() => null);
           if (!stat || !stat.isDirectory()) {
             console.warn(`Repository directory does not exist or is not a directory: ${repoDir}`);
@@ -70,6 +71,7 @@ const app = new Elysia()
 
           $.cwd(repoDir);
           await $`git pull`;
+
           if (await Bun.file(path.join(repoDir, 'package.json')).exists()) {
             await $`npm run build`;
           }
